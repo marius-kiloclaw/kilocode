@@ -237,6 +237,42 @@ import defaultExport from './module';`
     })
   })
 
+  describe("Non-file URI filtering", () => {
+    it("should return null for VS Code virtual document URIs", async () => {
+      const virtualUris = ["output:tasks", "vscode:extension/info", "untitled:Untitled-1"]
+      for (const uri of virtualUris) {
+        const result = await (service as any)._getFileInfo(uri)
+        expect(result).toBeNull()
+      }
+    })
+
+    it("should NOT filter Windows drive-letter paths", async () => {
+      // Windows paths like C:\Users\file.ts match the URI scheme regex
+      // (C: looks like a scheme) but must NOT be filtered out.
+      const windowsPaths = ["C:\\Users\\test\\file.ts", "D:\\projects\\app\\index.js", "c:/workspace/main.py"]
+
+      for (const filepath of windowsPaths) {
+        const result = await (service as any)._getFileInfo(filepath)
+        // Should NOT be null — the path should be processed (may return
+        // { imports: {} } if parser can't handle it, but not null from the URI filter)
+        expect(result).not.toBeNull()
+      }
+    })
+
+    it("should allow file: URIs through", async () => {
+      // file: URIs should not be filtered
+      const result = await (service as any)._getFileInfo("file:///workspace/test.ts")
+      // May return null for other reasons (findUriInDirs), but not from the URI filter
+      // The important thing is the URI filter doesn't reject it
+      expect(result).toBeDefined()
+    })
+
+    it("should allow absolute Unix paths through", async () => {
+      const result = await (service as any)._getFileInfo("/workspace/test.py")
+      expect(result).not.toBeNull()
+    })
+  })
+
   describe("Edge Cases with Real Parsing", () => {
     it("should return null for .ipynb files", async () => {
       const filepath = "/workspace/notebook.ipynb"

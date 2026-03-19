@@ -35,7 +35,14 @@ export class ImportDefinitionsService {
 
     // Skip non-file URIs (e.g. output:tasks, vscode:, untitled:) — these are
     // VS Code virtual documents that have no parseable source.
-    if (/^[a-zA-Z][\w+.-]*:/.test(filepath) && !filepath.startsWith("file:") && !filepath.startsWith("/")) {
+    // Exclude Windows drive-letter paths (e.g. C:\Users\...) which also match
+    // the URI scheme pattern but are valid filesystem paths.
+    if (
+      /^[a-zA-Z][\w+.-]*:/.test(filepath) &&
+      !filepath.startsWith("file:") &&
+      !filepath.startsWith("/") &&
+      !/^[a-zA-Z]:[\\/]/.test(filepath)
+    ) {
       return null
     }
 
